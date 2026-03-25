@@ -34,28 +34,42 @@ class FeaturesTourController {
   /// The name of this page.
   final String pageName;
 
+  /// Notifier that reflects whether any tour step on this page has been marked
+  /// as seen in persistent storage. Updated automatically when a step is seen
+  /// or when [reset] is called. Call [checkHasSeenTours] to initialise the
+  /// value before the tour has run for the first time.
+  final _hasSeenTours = ValueNotifier<bool>(false);
+
   /// The internal list of the states.
-  final SplayTreeMap<double, _FeaturesTourState> _states = SplayTreeMap.from(
+  final SplayTreeMap<int, _FeaturesTourState> _states = SplayTreeMap.from(
     {},
     (a, b) => a.compareTo(b),
   );
 
   /// The internal cached states that have been unregistered.
-  final _cachedStates = SplayTreeMap<double, _FeaturesTourState>.from(
+  final _cachedStates = SplayTreeMap<int, _FeaturesTourState>.from(
     {},
     (a, b) => a.compareTo(b),
   );
 
-  final _globalKeys = <double, GlobalKey>{};
-  final Map<double, Completer<_FeaturesTourState>> _pendingIndexes = {};
+  final _globalKeys = <int, GlobalKey>{};
+  final Map<int, Completer<_FeaturesTourState>> _pendingIndexes = {};
 
   /// The internal list of the introduced states.
-  final Set<double> _introducedIndexes = {};
+  final Set<int> _introducedIndexes = {};
 
   Completer<IntroduceResult>? _introduceCompleter;
 
   bool _isIntroducing = false;
-  final _introducingIndex = ValueNotifier<double?>(null);
+  final _introducingIndex = ValueNotifier<int?>(null);
+
+  /// A [ValueListenable] that reflects the index of the step currently being
+  /// introduced, or `null` when no tour is active.
+  ValueListenable<int?> get introducingIndex => _introducingIndex;
+
+  /// The index of the step currently being introduced, or `null` when no tour
+  /// is running. For reactive observation use [introducingIndex].
+  int? get currentIndex => _introducingIndex.value;
   final bool _debugLog;
   bool _popToSkip = true;
   LiteLogger? _logger = FeaturesTour._globalLogger;
@@ -128,7 +142,7 @@ class FeaturesTourController {
   /// ```
   Future<void> start(
     BuildContext context, {
-    double? firstIndex,
+    int? firstIndex,
     Duration firstIndexTimeout = const Duration(seconds: 3),
     Duration delay = const Duration(milliseconds: 500),
     bool? force,
@@ -166,6 +180,11 @@ class FeaturesTourController {
       }
 
       _prefs ??= await SharedPreferences.getInstance();
+
+      // Initialise the seen-tours notifiers from persistent storage so that
+      // [FeaturesTour.seenToursBuilder] reflects reality even before the first
+      // tour step is shown in this session.
+      await checkHasSeenTours();
 
       if (!context.mounted) {
         _logger?.warning(() => 'The page $pageName context is not mounted.');
@@ -277,6 +296,13 @@ class FeaturesTourController {
       if (firstIndex != null) {
         nextState = await _nextIndex(firstIndex, firstIndexTimeout);
       }
+
+      // Pre-filter to find how many features will actually be shown, so the
+      // introduce builder receives a sequential 0-based index relative to the
+      // features being introduced (not the raw widget index).
+      await _removedAllShownIntroductions(force);
+      final displayTotal = _states.length;
+      var displayIndex = 0;
 
       _logger?.step(() => 'Starting the tour.');
       while (_states.isNotEmpty) {
@@ -391,11 +417,14 @@ class FeaturesTourController {
           context,
           state,
           isLastState,
+          displayIndex,
+          displayTotal,
           () async {
             _logger?.step(() => '   -> The introduction is shown.');
             await onState?.call(TourIntroducing(index: state.widget.index));
           },
         );
+        displayIndex++;
 
         if (state.widget.onAfterIntroduce != null) {
           _logger?.step(() => '   -> Calling `onAfterIntroduce`.');
@@ -475,6 +504,8 @@ class FeaturesTourController {
     BuildContext context,
     _FeaturesTourState state,
     bool isLastState,
+    int displayIndex,
+    int displayTotal,
     FutureOr<void> Function() onShownIntroduction,
   ) async {
     if (!context.mounted) {
@@ -552,6 +583,8 @@ class FeaturesTourController {
               globalKey: _globalKeys[state.widget.index]!,
               childConfig: childConfig,
               introduce: state.widget.introduce,
+              featureIndex: displayIndex,
+              totalFeatures: displayTotal,
               introduceConfig: introduceConfig,
               skip: SafeArea(
                 child: Padding(
@@ -621,6 +654,156 @@ class FeaturesTourController {
     return result;
   }
 
+  /// Programmatically skips the current step, equivalent to the user tapping
+  /// the Skip button. Returns `true` if the action was performed, or `false`
+  /// if no step is currently awaiting input.
+  bool skip() {
+    if (_introduceCompleter == null || _introduceCompleter!.isCompleted) {
+      return false;
+    }
+    _introduceCompleter!.complete(IntroduceResult.skip);
+    return true;
+  }
+
+  /// Programmatically advances to the next step, equivalent to the user
+  /// tapping the Next button. Returns `true` if the action was performed, or
+  /// `false` if no step is currently awaiting input.
+  bool next() {
+    if (_introduceCompleter == null || _introduceCompleter!.isCompleted) {
+      return false;
+    }
+    _introduceCompleter!.complete(IntroduceResult.next);
+    return true;
+  }
+
+  /// Programmatically finishes the tour at the current step, equivalent to
+  /// the user tapping the Done button. Returns `true` if the action was
+  /// performed, or `false` if no step is currently awaiting input.
+  bool done() {
+    if (_introduceCompleter == null || _introduceCompleter!.isCompleted) {
+      return false;
+    }
+    _introduceCompleter!.complete(IntroduceResult.done);
+    return true;
+  }
+
+  /// Resets the tour for this page by clearing its persistent "seen" state,
+  /// so features will be shown again on the next [start] call.
+  ///
+  /// If [name] is provided, only the feature with that name is reset.
+  /// Otherwise, all features for this page are reset.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Reset everything on this page.
+  /// await tourController.reset();
+  ///
+  /// // Reset a single feature.
+  /// await tourController.reset(name: 'my_feature');
+  /// ```
+  Future<void> reset({String? name}) async {
+    _prefs ??= await SharedPreferences.getInstance();
+
+    if (name != null) {
+      await _prefs!.remove('${FeaturesTour._prefix}_${pageName}_$name');
+      // Restore the matching state to the queue so it can be shown again.
+      for (final entry in _cachedStates.entries) {
+        if (entry.value.widget.name == name) {
+          _states[entry.key] = entry.value;
+          break;
+        }
+      }
+    } else {
+      for (final state in _cachedStates.values) {
+        await _prefs!.remove(_getPrefKey(state));
+      }
+      // Restore all states to the queue.
+      _states
+        ..clear()
+        ..addAll(_cachedStates);
+    }
+
+    // Update the notifier to reflect whether any steps are still seen.
+    _hasSeenTours.value = await checkHasSeenTours();
+  }
+
+  /// Returns `true` if the feature with the given [name] has been marked as
+  /// seen in persistent storage. Initializes SharedPreferences on first call
+  /// if [start] has not been called yet.
+  Future<bool> hasBeenSeen(String name) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!.getBool('${FeaturesTour._prefix}_${pageName}_$name') ?? false;
+  }
+
+  /// The total number of [FeaturesTour] widgets currently registered with
+  /// this controller, regardless of whether they have been seen or not.
+  ///
+  /// This reflects the count of widgets that are currently mounted in the
+  /// widget tree. Call after the widget tree is built for an accurate count.
+  int get totalFeatures => _cachedStates.length;
+
+  /// A [ValueListenable] that reflects whether any tour step on this page has
+  /// been marked as seen. Listeners are notified automatically whenever a step
+  /// is seen or [reset] is called.
+  ///
+  /// Use [checkHasSeenTours] to load the initial value from persistent storage
+  /// before the tour has run for the first time.
+  ///
+  /// Example:
+  /// ```dart
+  /// controller.seenToursBuilder(
+  ///   (context, hasSeen) => TextButton(
+  ///     onPressed: hasSeen ? () => controller.reset() : null,
+  ///     child: const Text('Reset tour'),
+  ///   ),
+  /// );
+  /// ```
+  ValueListenable<bool> get hasSeenTours => _hasSeenTours;
+
+  /// Reads SharedPreferences and updates [hasSeenTours] with whether at least
+  /// one step on this page has been marked as seen.
+  ///
+  /// Returns `true` if at least one step has been seen.
+  Future<bool> checkHasSeenTours() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    for (final state in _cachedStates.values) {
+      final key = _getPrefKey(state);
+      if (_prefs!.getBool(key) == true) {
+        _hasSeenTours.value = true;
+        FeaturesTour._hasSeenToursGlobal.value = true;
+        return true;
+      }
+    }
+    _hasSeenTours.value = false;
+    return false;
+  }
+
+  /// Returns a widget that rebuilds whenever [hasSeenTours] changes.
+  ///
+  /// The [builder] receives the current [BuildContext] and a [hasSeen] boolean
+  /// indicating whether any tour step on this page has been marked as seen.
+  ///
+  /// Call [checkHasSeenTours] before building the widget tree to ensure the
+  /// initial value is loaded from persistent storage.
+  ///
+  /// Example:
+  /// ```dart
+  /// controller.seenToursBuilder(
+  ///   (context, hasSeen) => TextButton(
+  ///     onPressed: hasSeen ? () => controller.reset() : null,
+  ///     child: const Text('Reset tour'),
+  ///   ),
+  /// );
+  /// ```
+  Widget seenToursBuilder(
+    Widget Function(BuildContext context, bool hasSeen) builder,
+  ) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _hasSeenTours,
+      builder: (context, hasSeen, _) => builder(context, hasSeen),
+    );
+  }
+
   void _handlePopScope() {
     if (!_popToSkip) {
       _logger?.debug(() => 'Pop to skip is disabled.');
@@ -641,7 +824,7 @@ class FeaturesTourController {
       _states.clear();
     }
 
-    final removedIndexes = <double>[];
+    final removedIndexes = <int>[];
     for (final state in _states.entries) {
       final tour = state.value;
       if (_introducedIndexes.contains(state.key)) {
@@ -705,7 +888,7 @@ class FeaturesTourController {
   }
 
   /// Waits for the next index to be available.
-  Future<_FeaturesTourState?> _nextIndex(double index, Duration timeout) async {
+  Future<_FeaturesTourState?> _nextIndex(int index, Duration timeout) async {
     // Checks if the state is already available.
     if (_states.containsKey(index)) {
       return _states[index];
@@ -771,6 +954,8 @@ class FeaturesTourController {
     if (markAsIntroduced) {
       final key = _getPrefKey(state);
       await _prefs!.setBool(key, true);
+      _hasSeenTours.value = true;
+      FeaturesTour._hasSeenToursGlobal.value = true;
     }
     _states.remove(state.widget.index);
     _introducedIndexes.add(state.widget.index);
@@ -790,6 +975,6 @@ class FeaturesTourController {
 
   /// Gets the key for shared preferences.
   String _getPrefKey(_FeaturesTourState state) {
-    return '${FeaturesTour._prefix}_${pageName}_${state.widget.index}';
+    return '${FeaturesTour._prefix}_${pageName}_${state.widget.name}';
   }
 }

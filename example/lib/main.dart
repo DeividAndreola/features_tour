@@ -41,15 +41,15 @@ void main() {
 }
 
 abstract class MainTourIndex {
-  static const drawer = 0.0;
-  static const buttonOnDrawer = 1.0;
-  static const settingAction = 2.0;
-  static const list = 3.0;
-  static const firstItem = 4.0;
-  static const item90 = 5.0;
-  static const dialogButton = 5.5;
-  static const restartTourButton = 6.0;
-  static const floatingButton = 7.0;
+  static const drawer = 0;
+  static const buttonOnDrawer = 1;
+  static const settingAction = 2;
+  static const list = 3;
+  static const firstItem = 4;
+  static const item90 = 5;
+  static const dialogButton = 6;
+  static const restartTourButton = 7;
+  static const floatingButton = 8;
 }
 
 class ChangeableThemeMaterialApp extends StatefulWidget {
@@ -112,6 +112,7 @@ class _AppState extends State<App> {
         leading: FeaturesTour(
           controller: tourController,
           index: MainTourIndex.drawer,
+          name: 'drawer',
           nextIndex: MainTourIndex.buttonOnDrawer,
           onAfterIntroduce: (result) {
             if (result != IntroduceResult.next &&
@@ -121,7 +122,7 @@ class _AppState extends State<App> {
 
             scaffoldKey.currentState?.openDrawer();
           },
-          introduce: const Text('Tap here to open the drawer'),
+          introduce: (_, __, ___) => const Text('Tap here to open the drawer'),
           child: IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () {
@@ -133,7 +134,8 @@ class _AppState extends State<App> {
           FeaturesTour(
             controller: tourController,
             index: MainTourIndex.settingAction,
-            introduce: const Text(
+            name: 'setting_action',
+            introduce: (_, __, ___) => const Text(
                 'Tap here to change the brightness and reset the tour'),
             child: IconButton(
               icon: changeableState.isDark
@@ -152,7 +154,8 @@ class _AppState extends State<App> {
           child: FeaturesTour(
             controller: tourController,
             index: MainTourIndex.buttonOnDrawer,
-            introduce: const Text('Tap here to close the drawer'),
+            name: 'button_on_drawer',
+            introduce: (_, __, ___) => const Text('Tap here to close the drawer'),
             onAfterIntroduce: (result) {
               if (result case IntroduceResult.next || IntroduceResult.done) {
                 scaffoldKey.currentState?.closeDrawer();
@@ -170,7 +173,8 @@ class _AppState extends State<App> {
       body: FeaturesTour(
         controller: tourController,
         index: MainTourIndex.list,
-        introduce: Text(
+        name: 'list',
+        introduce: (context, _, __) => Text(
           'This is a list of items',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onPrimary,
@@ -205,8 +209,9 @@ class _AppState extends State<App> {
                     FeaturesTour(
                       controller: tourController,
                       index: MainTourIndex.firstItem,
+                      name: 'first_item',
                       nextIndex: MainTourIndex.item90,
-                      introduce: const Text('This is the item 0'),
+                      introduce: (_, __, ___) => const Text('This is the item 0'),
                       child: const Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Text('Item 0'),
@@ -217,8 +222,9 @@ class _AppState extends State<App> {
                         enabled: index == 95,
                         controller: tourController,
                         index: MainTourIndex.item90,
+                        name: 'item_90',
                         nextIndex: MainTourIndex.dialogButton,
-                        introduce: Text('This is the item $index'),
+                        introduce: (_, __, ___) => Text('This is the item $index'),
                         onBeforeIntroduce: () async {
                           // Scroll to the last item when the first item is tapped
                           await scrollController.animateTo(
@@ -250,7 +256,8 @@ class _AppState extends State<App> {
                                       FeaturesTour(
                                         controller: tourController,
                                         index: MainTourIndex.dialogButton,
-                                        introduce: const Text(
+                                        name: 'dialog_button',
+                                        introduce: (_, __, ___) => const Text(
                                           'Tap here to close the dialog',
                                         ),
                                         onAfterIntroduce: (result) {
@@ -298,7 +305,8 @@ class _AppState extends State<App> {
                         FeaturesTour(
                           controller: tourController,
                           index: MainTourIndex.restartTourButton,
-                          introduce:
+                          name: 'restart_tour_button',
+                          introduce: (_, __, ___) =>
                               const Text('Tap here to run the tour again'),
                           childConfig: ChildConfig(
                             shapeBorder: const CircleBorder(),
@@ -319,7 +327,8 @@ class _AppState extends State<App> {
                         FeaturesTour(
                           controller: tourController,
                           index: MainTourIndex.floatingButton,
-                          introduce: const Text('Tap here to add a new item'),
+                          name: 'floating_button',
+                          introduce: (_, __, ___) => const Text('Tap here to add a new item'),
                           childConfig: ChildConfig(
                             shapeBorder: const CircleBorder(),
                             borderSizeInflate: 10.0,

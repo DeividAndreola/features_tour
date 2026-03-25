@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:features_tour/features_tour.dart';
 import 'package:features_tour/src/extensions/get_widget_position.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +19,8 @@ class FeaturesChild extends StatefulWidget {
     required this.doneConfig,
     required this.isLastState,
     required this.introduce,
+    required this.featureIndex,
+    required this.totalFeatures,
     required this.introduceConfig,
     required this.padding,
     super.key,
@@ -54,8 +58,14 @@ class FeaturesChild extends StatefulWidget {
   /// Indicates if this is the final step.
   final bool isLastState;
 
-  /// The feature introduction widget, typically a `Text` widget.
-  final Widget introduce;
+  /// Builder for the feature introduction widget.
+  final Widget Function(BuildContext context, int index, int total) introduce;
+
+  /// The index of the current feature step.
+  final int featureIndex;
+
+  /// The total number of features registered with this controller.
+  final int totalFeatures;
 
   /// The introduction widget's configuration.
   final IntroduceConfig introduceConfig;
@@ -332,22 +342,42 @@ class _FeaturesChildState extends State<FeaturesChild>
             else
               Positioned.fromRect(rect: rect!, child: widget.child),
 
-            // Introduction widget.
-            Positioned.fromRect(
-              rect: introduceRect,
-              child: IgnorePointer(
-                child: Padding(
-                  padding: widget.padding,
-                  child: Align(
-                    alignment: alignment,
-                    child: widget.introduceConfig.builder(
-                      context,
-                      rect!,
-                      widget.introduce,
+            // Connector line between child and introduce.
+            Builder(
+              builder: (context) {
+                final config =
+                    widget.introduceConfig.connectorConfig ??
+                    ConnectorConfig.global;
+                if (!config.enabled) return const SizedBox.shrink();
+                final color =
+                    config.color ?? Theme.of(context).colorScheme.primary;
+                // Resolve the introduce padding so the connector ends at the
+                // actual card boundary, not the outer introduceRect.
+                final introPadding = widget.padding.resolve(
+                  Directionality.maybeOf(context) ?? TextDirection.ltr,
+                );
+                return Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: _ConnectorPainter(
+                        childRect: rect!,
+                        introduceRect: introduceRect,
+                        introPadding: introPadding,
+                        color: color,
+                        strokeWidth: config.strokeWidth,
+                        dotRadius: config.dotRadius,
+                        childAnchor: config.childAnchor,
+                        startOffset: config.startOffset,
+                        introAnchor: config.introAnchor,
+                        endOffset: config.endOffset,
+                        cornerRadius: config.cornerRadius,
+                        arrowSize: config.arrowSize,
+                        minDistance: config.minDistance,
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
 
             Scaffold(
@@ -386,7 +416,269 @@ class _FeaturesChildState extends State<FeaturesChild>
                 ],
               ),
             ),
+
+            // Introduction widget — must be last in the stack so it is drawn
+            // and hit-tested on top of the Scaffold, allowing interactive
+            // elements inside the introduce widget to receive pointer events.
+            Positioned.fromRect(
+              rect: introduceRect,
+              child: Padding(
+                padding: widget.padding,
+                child: Align(
+                  alignment: alignment,
+                  child: widget.introduceConfig.builder(
+                    context,
+                    rect!,
+                    widget.introduce(context, widget.featureIndex, widget.totalFeatures),
+                  ),
+                ),
+              ),
+            ),
           ],
         );
   }
+}
+
+/// Paints an orthogonal connector between the child widget and the
+/// introduction card, routing automatically:
+///
+/// - **Child below intro** → L-shape (horizontal → vertical UP, arrives at
+///   bottom-center of intro).
+/// - **Child above intro** → Z-shape (vertical DOWN → horizontal → vertical
+///   DOWN, arrives at top-center of intro).
+///
+/// Draws a dot at the start and an open arrowhead at the end.
+class _ConnectorPainter extends CustomPainter {
+  const _ConnectorPainter({
+    required this.childRect,
+    required this.introduceRect,
+    required this.introPadding,
+    required this.color,
+    required this.strokeWidth,
+    required this.dotRadius,
+    required this.childAnchor,
+    required this.startOffset,
+    required this.introAnchor,
+    required this.endOffset,
+    required this.cornerRadius,
+    required this.arrowSize,
+    required this.minDistance,
+  });
+
+  final Rect childRect;
+  final Rect introduceRect;
+
+  /// Resolved padding of the introduce widget inside [introduceRect].
+  /// Used to find the actual card boundary for the end-point anchor.
+  final EdgeInsets introPadding;
+
+  final Color color;
+  final double strokeWidth;
+  final double dotRadius;
+  final Alignment childAnchor;
+  final Offset startOffset;
+  final Alignment? introAnchor;
+  final Offset endOffset;
+  final double cornerRadius;
+  final double arrowSize;
+  final double minDistance;
+
+  // The actual bounding rect of the intro card (introduceRect minus padding).
+  Rect get _introCardRect => Rect.fromLTRB(
+        introduceRect.left + introPadding.left,
+        introduceRect.top + introPadding.top,
+        introduceRect.right - introPadding.right,
+        introduceRect.bottom - introPadding.bottom,
+      );
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Hide the connector when the child and the intro card are too close.
+    // Use _introCardRect (padding already subtracted) so the gap reflects the
+    // actual visual space between the child and the visible card edge.
+    if (minDistance > 0) {
+      final cardRect = _introCardRect;
+      final gap = childRect.center.dy < introduceRect.center.dy
+          ? cardRect.top - childRect.bottom
+          : childRect.top - cardRect.bottom;
+      if (gap < minDistance) return;
+    }
+
+    final childAboveIntro = childRect.center.dy < introduceRect.center.dy;
+    final start = childAnchor.withinRect(childRect) + startOffset;
+
+    final cardRect = _introCardRect;
+
+    // Determine end point and arrival direction.
+    final Offset end;
+    final double arrivalAngle; // radians: angle the line is traveling AT end
+
+    if (introAnchor != null) {
+      // User-specified anchor: snap to the card edge on the dominant axis so
+      // the line arrives at the boundary, not inside.
+      final anchorPt = introAnchor!.withinRect(cardRect);
+      if (introAnchor!.y <= -0.5) {
+        end = Offset(anchorPt.dx, cardRect.top) + endOffset;
+        arrivalAngle = -math.pi / 2; // going UP
+      } else if (introAnchor!.y >= 0.5) {
+        end = Offset(anchorPt.dx, cardRect.bottom) + endOffset;
+        arrivalAngle = math.pi / 2;  // going DOWN
+      } else if (introAnchor!.x <= -0.5) {
+        end = Offset(cardRect.left, anchorPt.dy) + endOffset;
+        arrivalAngle = math.pi;      // going LEFT
+      } else {
+        end = Offset(cardRect.right, anchorPt.dy) + endOffset;
+        arrivalAngle = 0;            // going RIGHT
+      }
+    } else {
+      // Auto: snap to the top or bottom edge center based on relative position.
+      if (childAboveIntro) {
+        // Child is above intro → arrive at top edge going DOWN.
+        end = Offset(cardRect.center.dx, cardRect.top) + endOffset;
+        arrivalAngle = math.pi / 2;
+      } else {
+        // Child is below intro → arrive at bottom edge going UP.
+        end = Offset(cardRect.center.dx, cardRect.bottom) + endOffset;
+        arrivalAngle = -math.pi / 2;
+      }
+    }
+
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(_buildPath(start, end), linePaint);
+
+    // Arrowhead.
+    if (arrowSize > 0) {
+      _drawArrow(canvas, linePaint, end, arrivalAngle);
+    }
+
+    // Dot at start.
+    if (dotRadius > 0) {
+      canvas.drawCircle(
+        start,
+        dotRadius,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+
+  Path _buildPath(Offset start, Offset end) {
+    final path = Path()..moveTo(start.dx, start.dy);
+
+    // If start is inside the child rect, draw a straight segment to the exit
+    // edge first so routing (and curves) only begin outside the child domain.
+    // If start is already outside, skip this — no extra line needed.
+    final Offset routeStart;
+    if (childRect.contains(start)) {
+      if (childRect.center.dy < introduceRect.center.dy) {
+        // Z-shape: exit through the bottom edge.
+        routeStart = Offset(start.dx, childRect.bottom);
+      } else {
+        // L-shape: exit through the left or right edge.
+        final toRight = end.dx > start.dx;
+        routeStart = Offset(
+          toRight ? childRect.right : childRect.left,
+          start.dy,
+        );
+      }
+      path.lineTo(routeStart.dx, routeStart.dy);
+    } else {
+      routeStart = start;
+    }
+
+    final hDist = (end.dx - routeStart.dx).abs();
+    final vDist = (end.dy - routeStart.dy).abs();
+
+    if (hDist < 1.0 || vDist < 1.0) {
+      path.lineTo(end.dx, end.dy);
+      return path;
+    }
+
+    if (childRect.center.dy > introduceRect.center.dy) {
+      // ── L-shape ──────────────────────────────────────────────────────────
+      final elbow = Offset(end.dx, routeStart.dy);
+      final r = cornerRadius.clamp(0.0, math.min(hDist / 2, vDist / 2));
+      final hSign = (end.dx - routeStart.dx).sign;
+      final vSign = (end.dy - elbow.dy).sign;
+
+      path
+        ..lineTo(elbow.dx - hSign * r, elbow.dy)
+        ..quadraticBezierTo(
+          elbow.dx, elbow.dy,
+          elbow.dx, elbow.dy + vSign * r,
+        )
+        ..lineTo(end.dx, end.dy);
+    } else {
+      // ── Z-shape ──────────────────────────────────────────────────────────
+      final midY = (routeStart.dy + end.dy) / 2;
+
+      final elbow1 = Offset(routeStart.dx, midY);
+      final elbow2 = Offset(end.dx, midY);
+
+      final seg1 = (routeStart - elbow1).distance;
+      final seg2 = (elbow1 - elbow2).distance;
+      final seg3 = (elbow2 - end).distance;
+
+      final r1 = cornerRadius.clamp(0.0, math.min(seg1 / 2, seg2 / 2));
+      final r2 = cornerRadius.clamp(0.0, math.min(seg2 / 2, seg3 / 2));
+
+      final vSign1 = (midY - routeStart.dy).sign;
+      final hSign  = (end.dx - routeStart.dx).sign;
+      final vSign2 = (end.dy - midY).sign;
+
+      path
+        ..lineTo(elbow1.dx, elbow1.dy - vSign1 * r1)
+        ..quadraticBezierTo(
+          elbow1.dx, elbow1.dy,
+          elbow1.dx + hSign * r1, elbow1.dy,
+        )
+        ..lineTo(elbow2.dx - hSign * r2, elbow2.dy)
+        ..quadraticBezierTo(
+          elbow2.dx, elbow2.dy,
+          elbow2.dx, elbow2.dy + vSign2 * r2,
+        )
+        ..lineTo(end.dx, end.dy);
+    }
+
+    return path;
+  }
+
+  /// Draws an open V arrowhead at [tip] pointing in [angle] (radians).
+  void _drawArrow(Canvas canvas, Paint paint, Offset tip, double angle) {
+    const halfAngle = 35.0 * math.pi / 180; // 35° per wing
+    final wing1 = tip + Offset(
+      math.cos(angle + math.pi - halfAngle) * arrowSize,
+      math.sin(angle + math.pi - halfAngle) * arrowSize,
+    );
+    final wing2 = tip + Offset(
+      math.cos(angle + math.pi + halfAngle) * arrowSize,
+      math.sin(angle + math.pi + halfAngle) * arrowSize,
+    );
+    canvas
+      ..drawLine(tip, wing1, paint)
+      ..drawLine(tip, wing2, paint);
+  }
+
+  @override
+  bool shouldRepaint(_ConnectorPainter old) =>
+      old.childRect != childRect ||
+      old.introduceRect != introduceRect ||
+      old.introPadding != introPadding ||
+      old.color != color ||
+      old.strokeWidth != strokeWidth ||
+      old.dotRadius != dotRadius ||
+      old.childAnchor != childAnchor ||
+      old.startOffset != startOffset ||
+      old.introAnchor != introAnchor ||
+      old.endOffset != endOffset ||
+      old.cornerRadius != cornerRadius ||
+      old.arrowSize != arrowSize ||
+      old.minDistance != minDistance;
 }

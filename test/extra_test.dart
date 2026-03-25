@@ -54,14 +54,16 @@ void main() {
             children: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller1,
-                introduce: const Text('p1.i1'),
+                introduce: (_, __, ___) => const Text('p1.i1'),
                 child: const Text('p1.c1'),
               ),
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller2,
-                introduce: const Text('p2.i1'),
+                introduce: (_, __, ___) => const Text('p2.i1'),
                 child: const Text('p2.c1'),
               ),
             ],
@@ -74,8 +76,8 @@ void main() {
       await FeaturesTour.removeAll();
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('FeaturesTour_Page1_1.0'), isTrue);
-      expect(prefs.getBool('FeaturesTour_Page2_1.0'), isTrue);
+      expect(prefs.getBool('FeaturesTour_Page1_feature_1'), isTrue);
+      expect(prefs.getBool('FeaturesTour_Page2_feature_1'), isTrue);
     });
 
     testWidgets('DismissAllTourStorage saves and retrieves dismissal state', (
@@ -127,8 +129,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -184,8 +187,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -370,8 +374,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -473,8 +478,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 childConfig: ChildConfig(
                   shapeBorder: const CircleBorder(),
                   isAnimateChild: false,
@@ -517,8 +523,9 @@ void main() {
           home: Scaffold(
             body: FeaturesTour(
               index: 1,
+              name: 'feature_1',
               controller: controller,
-              introduce: const Text('a.intro'),
+              introduce: (_, __, ___) => const Text('a.intro'),
               introduceConfig: IntroduceConfig(
                 quadrantAlignment: QuadrantAlignment.top,
               ),
@@ -574,14 +581,16 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 child: const Text('b'),
               ),
             ],

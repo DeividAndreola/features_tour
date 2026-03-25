@@ -77,8 +77,9 @@ void main() {
                   if (value)
                     FeaturesTour(
                       index: 1,
+                      name: 'feature_1',
                       controller: controller,
-                      introduce: const Text('a.intro'),
+                      introduce: (_, __, ___) => const Text('a.intro'),
                       child: const Text('a'),
                       onAfterIntroduce: (_) {
                         showChild.value = false;
@@ -86,8 +87,9 @@ void main() {
                     ),
                   FeaturesTour(
                     index: 2,
+                    name: 'feature_2',
                     controller: controller,
-                    introduce: const Text('b.intro'),
+                    introduce: (_, __, ___) => const Text('b.intro'),
                     child: const Text('b'),
                   ),
                 ],
@@ -150,8 +152,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -203,8 +206,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -283,8 +287,9 @@ void main() {
             home: Scaffold(
               body: FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: FeaturesTourController('TestApp'),
-                introduce: Text(alignment.name),
+                introduce: (_, __, ___) => Text(alignment.name),
                 introduceConfig: IntroduceConfig(quadrantAlignment: alignment),
                 child: SizedBox(
                   key: childKey,
@@ -360,8 +365,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -430,8 +436,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -496,8 +503,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -550,6 +558,7 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
                 child: const Text('a'),
               ),

@@ -82,7 +82,7 @@ class TourIntroducing extends TourState {
   const TourIntroducing({required this.index});
 
   /// The index of the feature being introduced.
-  final double? index;
+  final int? index;
 }
 
 /// Indicates that the introduction for a specific feature should not be shown.
@@ -91,7 +91,7 @@ class TourSkippedIntroduction extends TourState {
   const TourSkippedIntroduction({required this.index});
 
   /// The index of the feature that should not be shown.
-  final double? index;
+  final int? index;
 }
 
 /// Indicates that the `introduce` method has been called, but the introduction has not yet started.

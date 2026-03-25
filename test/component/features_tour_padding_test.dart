@@ -32,12 +32,13 @@ void main() {
                     FeaturesTour(
                       controller: controller,
                       index: 1,
-                      introduce: const Text('Feature 1'),
+                      name: 'feature_1',
+                      introduce: (_, __, ___) => const Text('Feature 1'),
                       child: const SizedBox(width: 10, height: 10),
                     ),
                     FeaturesTourPadding(
                       controller: controller,
-                      indexes: {1.0},
+                      indexes: {1},
                       padding: padding,
                       animationDuration: animationDuration,
                       child: const SizedBox(key: Key('padded_child')),
@@ -105,12 +106,13 @@ void main() {
                     FeaturesTour(
                       controller: controller,
                       index: 1,
-                      introduce: const Text('Feature 1'),
+                      name: 'feature_1',
+                      introduce: (_, __, ___) => const Text('Feature 1'),
                       child: const SizedBox(width: 10, height: 10),
                     ),
                     FeaturesTourPadding(
                       controller: controller,
-                      indexes: {2.0},
+                      indexes: {2},
                       padding: padding,
                       animationDuration: animationDuration,
                       child: const SizedBox(key: Key('padded_child')),
@@ -178,19 +180,21 @@ void main() {
                     FeaturesTour(
                       controller: controller,
                       index: 1,
+                      name: 'feature_1',
                       nextIndex: 2,
-                      introduce: const Text('Feature 1'),
+                      introduce: (_, __, ___) => const Text('Feature 1'),
                       child: const SizedBox(width: 10, height: 10),
                     ),
                     FeaturesTour(
                       controller: controller,
                       index: 2,
-                      introduce: const Text('Feature 2'),
+                      name: 'feature_2',
+                      introduce: (_, __, ___) => const Text('Feature 2'),
                       child: const SizedBox(width: 10, height: 10),
                     ),
                     FeaturesTourPadding(
                       controller: controller,
-                      indexes: {2.0},
+                      indexes: {2},
                       padding: padding,
                       animationDuration: animationDuration,
                       child: const SizedBox(key: Key('padded_child')),
@@ -220,20 +224,20 @@ void main() {
           context,
           delay: Duration.zero,
           onState: (state) async {
-            if (state case TourIntroducing(index: 1.0)) {
+            if (state case TourIntroducing(index: 1)) {
               await tester.pump();
 
-              // At index 1.0, no padding.
+              // At index 1, no padding.
               animatedPadding = tester.widget<AnimatedPadding>(paddingFinder);
               expect(animatedPadding.padding, EdgeInsets.zero);
               expect(find.text('Feature 1'), findsOneWidget);
 
               await tester.tap(find.text('Next'));
             }
-            if (state case TourIntroducing(index: 2.0)) {
+            if (state case TourIntroducing(index: 2)) {
               await tester.pump();
 
-              // At index 2.0, padding should be applied.
+              // At index 2, padding should be applied.
               animatedPadding = tester.widget<AnimatedPadding>(paddingFinder);
               expect(animatedPadding.padding, padding);
               expect(find.text('Feature 2'), findsOneWidget);

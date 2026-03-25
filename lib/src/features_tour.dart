@@ -6,6 +6,7 @@ import 'package:features_tour/src/components/cover_dialog.dart';
 import 'package:features_tour/src/components/dialogs.dart';
 import 'package:features_tour/src/components/features_child.dart';
 import 'package:features_tour/src/components/unfeatures_tour.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:lite_logger/lite_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +23,7 @@ class FeaturesTour extends StatefulWidget {
   /// You can use [childConfig] to customize the appearance or behavior of the child widget.
   ///
   /// The [index] is a unique identifier and determines the order in which widgets are shown.
-  /// It is a `double`, which allows for the insertion of new features between existing ones.
+  /// It is an `int` used to order the tour steps.
   /// Ensure this value remains unchanged to prevent re-introducing the same feature unnecessarily.
   ///
   /// Use [nextIndex] to specify the next index to display.
@@ -46,12 +47,13 @@ class FeaturesTour extends StatefulWidget {
   const FeaturesTour({
     required this.controller,
     required this.index,
+    required this.name,
     required this.child,
     super.key,
     this.nextIndex,
     this.nextIndexTimeout = const Duration(seconds: 3),
     this.childConfig,
-    this.introduce = const SizedBox.shrink(),
+    this.introduce = _defaultIntroduce,
     this.introduceConfig,
     this.nextConfig,
     this.skipConfig,
@@ -60,6 +62,9 @@ class FeaturesTour extends StatefulWidget {
     this.onBeforeIntroduce,
     this.onAfterIntroduce,
   });
+
+  static Widget _defaultIntroduce(BuildContext context, int index, int total) =>
+      const SizedBox.shrink();
 
   /// The prefix of this package.
   static String _prefix = 'FeaturesTour';
@@ -72,6 +77,11 @@ class FeaturesTour extends StatefulWidget {
 
   /// The global logger for all controllers.
   static LiteLogger? _globalLogger;
+
+  /// Global notifier that reflects whether any tour step across all pages has
+  /// been marked as seen. Updated automatically alongside each controller's own
+  /// [FeaturesTourController._hasSeenTours] notifier.
+  static final _hasSeenToursGlobal = ValueNotifier<bool>(false);
 
   /// Sets the global configs.
   ///
@@ -169,6 +179,74 @@ class FeaturesTour extends StatefulWidget {
     }
   }
 
+  /// Resets all tours for every page by removing their persistent "seen" state,
+  /// so all features will be shown again on the next [FeaturesTourController.start] call.
+  ///
+  /// Also clears the global "dismiss all tours" preference set by the user.
+  ///
+  /// Example:
+  /// ```dart
+  /// await FeaturesTour.resetAll();
+  /// ```
+  static Future<void> resetAll() async {
+    // Remove all persisted keys directly — does not depend on any controllers
+    // being mounted, so it works from any page (e.g. a settings screen).
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith('${_prefix}_'));
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+
+    // Restore the in-memory queue for any controllers that happen to be alive.
+    for (final controller in FeaturesTourController._controllers) {
+      controller._states
+        ..clear()
+        ..addAll(controller._cachedStates);
+      controller._hasSeenTours.value = false;
+    }
+
+    _hasSeenToursGlobal.value = false;
+    if (_debugLog) {
+      if (_globalLogger == null) {
+        debugPrint('[FeaturesTour] All tours have been reset.');
+      } else {
+        _globalLogger!.info(
+          () => '[FeaturesTour] All tours have been reset.',
+        );
+      }
+    }
+  }
+
+  /// A [ValueListenable] that reflects whether any tour step across **all**
+  /// pages has been marked as seen. Listeners are notified automatically
+  /// whenever any step is seen or when [resetAll] is called.
+  ///
+  /// For per-page observation use [FeaturesTourController.hasSeenTours].
+  static ValueListenable<bool> get hasSeenTours => _hasSeenToursGlobal;
+
+  /// Returns a widget that rebuilds whenever any tour step across **all** pages
+  /// changes its seen state — no controller required.
+  ///
+  /// The [builder] receives the current [BuildContext] and a [hasSeen] boolean.
+  ///
+  /// Example:
+  /// ```dart
+  /// FeaturesTour.seenToursBuilder(
+  ///   (context, hasSeen) => TextButton(
+  ///     onPressed: hasSeen ? () => FeaturesTour.resetAll() : null,
+  ///     child: const Text('Reset all tours'),
+  ///   ),
+  /// );
+  /// ```
+  static Widget seenToursBuilder(
+    Widget Function(BuildContext context, bool hasSeen) builder,
+  ) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _hasSeenToursGlobal,
+      builder: (context, hasSeen, _) => builder(context, hasSeen),
+    );
+  }
+
   /// Sets a global logger for all controllers.
   @visibleForTesting
   static void setTestingLogger(LiteLogger? logger) {
@@ -185,8 +263,13 @@ class FeaturesTour extends StatefulWidget {
   final FeaturesTourController controller;
 
   /// A unique index used to order the tour steps.
-  /// This value must not be duplicated.
-  final double index;
+  /// This value must not be duplicated within the same [controller].
+  final int index;
+
+  /// A unique name used to persist whether this step has been seen.
+  /// Must be unique within the same [controller] and must not change between
+  /// app versions to avoid re-showing already-seen steps.
+  final String name;
 
   /// Specifies the next [index] to start the tour.
   /// The plugin will wait for this index to appear or until [nextIndexTimeout] is reached.
@@ -195,7 +278,7 @@ class FeaturesTour extends StatefulWidget {
   /// Note: This value applies only within the same [controller].
   ///
   /// Example: Use this to wait for a dialog to appear before displaying the next step.
-  final double? nextIndex;
+  final int? nextIndex;
 
   /// The timeout duration for waiting on [nextIndex]. The default is 3 seconds.
   ///
@@ -208,8 +291,11 @@ class FeaturesTour extends StatefulWidget {
   /// The child widget wrapped by [FeaturesTour].
   final Widget child;
 
-  /// The widget used to introduce this feature in the tour.
-  final Widget introduce;
+  /// Builder for the widget used to introduce this feature in the tour.
+  ///
+  /// Receives the feature's [index] and [total] number of features registered
+  /// with this controller, allowing "step X of Y" style UIs.
+  final Widget Function(BuildContext context, int index, int total) introduce;
 
   /// The configuration for the [introduce] widget.
   /// If `null`, the global configuration ([IntroduceConfig.global]) will be used.

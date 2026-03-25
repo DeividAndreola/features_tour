@@ -25,7 +25,7 @@ class FeaturesTourPadding extends StatelessWidget {
   final FeaturesTourController controller;
 
   /// Updates the padding of all registered FeaturesTourPadding widgets based on the current tour index.
-  final Set<double> indexes;
+  final Set<int> indexes;
 
   /// The amount of padding to apply (default is 30 pixels vertically).
   final EdgeInsetsGeometry padding;

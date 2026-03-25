@@ -28,6 +28,9 @@ class IntroduceConfig {
   /// Using [useRootOverlay] to determine if the tour should be shown above
   /// all other [Overlay]s. Default is set to false.
   ///
+  /// Using [connectorConfig] to draw a connecting line between the highlighted
+  /// child widget and the introduction card. Default is disabled.
+  ///
   /// See also:
   ///   * [RoundedRectIntroduceConfig] for a configuration with rounded rectangle
   ///     decoration and better visible barrier color.
@@ -38,6 +41,7 @@ class IntroduceConfig {
     QuadrantAlignment? quadrantAlignment,
     Alignment? alignment,
     bool? useRootOverlay,
+    ConnectorConfig? connectorConfig,
   }) {
     return global.copyWith(
       builder: builder,
@@ -46,6 +50,7 @@ class IntroduceConfig {
       alignment: alignment,
       quadrantAlignment: quadrantAlignment,
       useRootOverlay: useRootOverlay,
+      connectorConfig: connectorConfig,
     );
   }
 
@@ -56,6 +61,7 @@ class IntroduceConfig {
     this.quadrantAlignment,
     this.alignment,
     this.useRootOverlay = false,
+    this.connectorConfig,
   });
 
   /// Global configuration.
@@ -87,6 +93,10 @@ class IntroduceConfig {
   /// This method can be expensive as it walks the element tree.
   final bool useRootOverlay;
 
+  /// Configuration for the connector drawn between the child widget and the
+  /// introduction card. If `null`, falls back to [ConnectorConfig.global].
+  final ConnectorConfig? connectorConfig;
+
   /// Creates a new IntroduceConfig based on these values.
   IntroduceConfig copyWith({
     IntroduceBuilder? builder,
@@ -96,6 +106,7 @@ class IntroduceConfig {
     QuadrantAlignment? quadrantAlignment,
     Duration? animationDuration,
     bool? useRootOverlay,
+    ConnectorConfig? connectorConfig,
   }) {
     return IntroduceConfig._(
       builder: builder ?? this.builder,
@@ -104,6 +115,7 @@ class IntroduceConfig {
       alignment: alignment ?? this.alignment,
       quadrantAlignment: quadrantAlignment ?? this.quadrantAlignment,
       useRootOverlay: useRootOverlay ?? this.useRootOverlay,
+      connectorConfig: connectorConfig ?? this.connectorConfig,
     );
   }
 

@@ -38,14 +38,16 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 child: const Text('b'),
               ),
             ],
@@ -106,15 +108,17 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 introduceConfig: RoundedRectIntroduceConfig(),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 child: const Text('b'),
               ),
             ],
@@ -179,14 +183,16 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 child: const Text('b'),
               ),
             ],
@@ -244,14 +250,16 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 doneConfig: DoneConfig(enabled: true),
                 child: const Text('b'),
               ),
@@ -314,8 +322,8 @@ void main() {
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({
-        'FeaturesTour_App_1.0': true,
-        'FeaturesTour_App_2.0': true,
+        'FeaturesTour_App_feature_1': true,
+        'FeaturesTour_App_feature_2': true,
       });
 
       final controller = FeaturesTourController('App');
@@ -325,14 +333,16 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 child: const Text('b'),
               ),
             ],
@@ -367,8 +377,8 @@ void main() {
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({
-        'FeaturesTour_App_1.0': true,
-        'FeaturesTour_App_2.0': true,
+        'FeaturesTour_App_feature_1': true,
+        'FeaturesTour_App_feature_2': true,
       });
 
       final controller = FeaturesTourController('App');
@@ -378,14 +388,16 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 doneConfig: DoneConfig(enabled: true),
                 child: const Text('b'),
               ),
@@ -457,8 +469,9 @@ void main() {
                 tours: [
                   FeaturesTour(
                     index: 1,
+                    name: 'feature_1',
                     controller: controller,
-                    introduce: const Text('a.intro'),
+                    introduce: (_, __, ___) => const Text('a.intro'),
                     nextIndex: 2,
                     child: const Text('a'),
                     onAfterIntroduce: (_) {
@@ -468,8 +481,9 @@ void main() {
                   if (value)
                     FeaturesTour(
                       index: 2,
+                      name: 'feature_2',
                       controller: controller,
-                      introduce: const Text('b.intro'),
+                      introduce: (_, __, ___) => const Text('b.intro'),
                       child: const Text('b'),
                     ),
                 ],
@@ -539,15 +553,17 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 enabled: false,
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 2,
+                name: 'feature_2',
                 controller: controller,
-                introduce: const Text('b.intro'),
+                introduce: (_, __, ___) => const Text('b.intro'),
                 child: const Text('b'),
               ),
             ],
@@ -605,8 +621,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
                 onBeforeIntroduce: () {
                   called = true;
@@ -665,8 +682,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
                 onAfterIntroduce: (result) {
                   called = true;
@@ -725,8 +743,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -796,8 +815,9 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
             ],
@@ -855,8 +875,9 @@ void main() {
               tours: [
                 FeaturesTour(
                   index: 1,
+                  name: 'feature_1',
                   controller: controller,
-                  introduce: const Text('a.intro'),
+                  introduce: (_, __, ___) => const Text('a.intro'),
                   child: const Text('a'),
                 ),
               ],
@@ -931,8 +952,9 @@ void main() {
               tours: [
                 FeaturesTour(
                   index: 1,
+                  name: 'feature_1',
                   controller: controller1,
-                  introduce: const Text('page1.intro'),
+                  introduce: (_, __, ___) => const Text('page1.intro'),
                   child: const Text('page1'),
                 ),
               ],
@@ -1002,8 +1024,9 @@ void main() {
               tours: [
                 FeaturesTour(
                   index: 1,
+                  name: 'feature_1',
                   controller: controller2,
-                  introduce: const Text('page2.intro'),
+                  introduce: (_, __, ___) => const Text('page2.intro'),
                   child: const Text('page2'),
                 ),
               ],
@@ -1052,6 +1075,315 @@ void main() {
     );
   });
 
+  group('Feature Inspection', () {
+    testWidgets('hasBeenSeen returns false before tour and true after', (
+      tester,
+    ) async {
+      // Use a unique page/feature name to avoid key collisions with the
+      // static _prefs cache shared across tests.
+      final controller = FeaturesTourController('InspectionPage');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: App(
+            tours: [
+              FeaturesTour(
+                index: 1,
+                name: 'inspection_feature',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('a.intro'),
+                child: const Text('a'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(App));
+
+      expect(await controller.hasBeenSeen('inspection_feature'), isFalse);
+
+      await tester.runAsync(() async {
+        await controller.start(
+          context,
+          force: true,
+          delay: Duration.zero,
+          onState: (state) async {
+            if (state is TourIntroducing) {
+              await tester.pump();
+              await tester.tap(find.text('DONE'));
+            }
+          },
+        );
+      });
+
+      await tester.pumpAndSettle();
+
+      expect(await controller.hasBeenSeen('inspection_feature'), isTrue);
+    });
+
+    testWidgets('hasBeenSeen returns false for a feature that was never seen', (
+      tester,
+    ) async {
+      final controller = FeaturesTourController('InspectionPage2');
+
+      await tester.pumpWidget(
+        const MaterialApp(home: App(tours: [])),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(await controller.hasBeenSeen('nonexistent_feature'), isFalse);
+    });
+
+    testWidgets('totalFeatures reflects the number of mounted FeaturesTour widgets', (
+      tester,
+    ) async {
+      final controller = FeaturesTourController('InspectionPage3');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: App(
+            tours: [
+              FeaturesTour(
+                index: 1,
+                name: 'feat_a',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('a.intro'),
+                child: const Text('a'),
+              ),
+              FeaturesTour(
+                index: 2,
+                name: 'feat_b',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('b.intro'),
+                child: const Text('b'),
+              ),
+              FeaturesTour(
+                index: 3,
+                name: 'feat_c',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('c.intro'),
+                child: const Text('c'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(controller.totalFeatures, 3);
+    });
+  });
+
+  group('Programmatic Control', () {
+    testWidgets('next() advances to the next step', (tester) async {
+      final controller = FeaturesTourController('App');
+      bool? nextResult;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: App(
+            tours: [
+              FeaturesTour(
+                index: 1,
+                name: 'feature_1',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('a.intro'),
+                child: const Text('a'),
+              ),
+              FeaturesTour(
+                index: 2,
+                name: 'feature_2',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('b.intro'),
+                child: const Text('b'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(App));
+
+      await tester.runAsync(() async {
+        await controller.start(
+          context,
+          force: true,
+          delay: Duration.zero,
+          onState: (state) async {
+            collectedStates.add(state);
+
+            if (state case TourIntroducing(index: final index)) {
+              await tester.pump();
+              if (index == 1) {
+                nextResult = controller.next();
+              } else if (index == 2) {
+                await tester.tap(find.text('DONE'));
+              }
+            }
+          },
+        );
+      });
+
+      await tester.pumpAndSettle();
+
+      expect(nextResult, isTrue);
+      expect(
+        collectedStates,
+        containsAllInOrder([
+          isA<TourIntroducing>().having((s) => s.index, 'index', 1),
+          isA<TourIntroduceResultEmitted>().having(
+            (s) => s.result,
+            'result',
+            IntroduceResult.next,
+          ),
+          isA<TourIntroducing>().having((s) => s.index, 'index', 2),
+          isA<TourCompleted>(),
+        ]),
+      );
+    });
+
+    testWidgets('skip() skips the tour from the current step', (tester) async {
+      final controller = FeaturesTourController('App');
+      bool? skipResult;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: App(
+            tours: [
+              FeaturesTour(
+                index: 1,
+                name: 'feature_1',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('a.intro'),
+                child: const Text('a'),
+              ),
+              FeaturesTour(
+                index: 2,
+                name: 'feature_2',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('b.intro'),
+                child: const Text('b'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(App));
+
+      await tester.runAsync(() async {
+        await controller.start(
+          context,
+          force: true,
+          delay: Duration.zero,
+          onState: (state) async {
+            collectedStates.add(state);
+
+            if (state case TourIntroducing(index: 1)) {
+              await tester.pump();
+              skipResult = controller.skip();
+            }
+          },
+        );
+      });
+
+      await tester.pumpAndSettle();
+
+      expect(skipResult, isTrue);
+      expect(find.text('b.intro'), findsNothing);
+      expect(
+        collectedStates,
+        containsAllInOrder([
+          isA<TourIntroducing>().having((s) => s.index, 'index', 1),
+          isA<TourIntroduceResultEmitted>().having(
+            (s) => s.result,
+            'result',
+            IntroduceResult.skip,
+          ),
+          isA<TourCompleted>(),
+        ]),
+      );
+    });
+
+    testWidgets('done() finishes the tour at the current step', (tester) async {
+      final controller = FeaturesTourController('App');
+      bool? doneResult;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: App(
+            tours: [
+              FeaturesTour(
+                index: 1,
+                name: 'feature_1',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('a.intro'),
+                child: const Text('a'),
+              ),
+              FeaturesTour(
+                index: 2,
+                name: 'feature_2',
+                controller: controller,
+                introduce: (_, __, ___) => const Text('b.intro'),
+                child: const Text('b'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(App));
+
+      await tester.runAsync(() async {
+        await controller.start(
+          context,
+          force: true,
+          delay: Duration.zero,
+          onState: (state) async {
+            collectedStates.add(state);
+
+            if (state case TourIntroducing(index: 1)) {
+              await tester.pump();
+              doneResult = controller.done();
+            }
+          },
+        );
+      });
+
+      await tester.pumpAndSettle();
+
+      expect(doneResult, isTrue);
+      expect(find.text('b.intro'), findsNothing);
+      expect(
+        collectedStates,
+        containsAllInOrder([
+          isA<TourIntroducing>().having((s) => s.index, 'index', 1),
+          isA<TourIntroduceResultEmitted>().having(
+            (s) => s.result,
+            'result',
+            IntroduceResult.done,
+          ),
+          isA<TourCompleted>(),
+        ]),
+      );
+    });
+
+    test('skip/next/done return false when no tour is running', () {
+      final controller = FeaturesTourController('App');
+
+      expect(controller.skip(), isFalse);
+      expect(controller.next(), isFalse);
+      expect(controller.done(), isFalse);
+    });
+  });
+
   group('Advanced Scenarios', () {
     testWidgets('nextIndex times out and proceeds to next available feature', (
       tester,
@@ -1064,16 +1396,18 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 nextIndex: 99, // This index will never appear
                 nextIndexTimeout: const Duration(milliseconds: 100),
                 child: const Text('a'),
               ),
               FeaturesTour(
                 index: 3,
+                name: 'feature_3',
                 controller: controller,
-                introduce: const Text('c.intro'),
+                introduce: (_, __, ___) => const Text('c.intro'),
                 child: const Text('c'),
               ),
             ],
@@ -1137,15 +1471,17 @@ void main() {
             tours: [
               FeaturesTour(
                 index: 1,
+                name: 'feature_1',
                 controller: controller,
-                introduce: const Text('a.intro'),
+                introduce: (_, __, ___) => const Text('a.intro'),
                 child: const Text('a'),
               ),
               UnfeaturesTour(
                 child: FeaturesTour(
                   index: 2,
+                  name: 'feature_2',
                   controller: controller,
-                  introduce: const Text('b.intro'),
+                  introduce: (_, __, ___) => const Text('b.intro'),
                   child: const Text('b'),
                 ),
               ),
