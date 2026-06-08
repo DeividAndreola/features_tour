@@ -93,6 +93,14 @@ class _FeaturesChildState extends State<FeaturesChild>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   Rect? rect;
   late Rect introduceRect;
+
+  /// A key attached to the actual introduce card so its real painted bounds can
+  /// be measured. The connector must end at the card itself, not at the full
+  /// [introduceRect] quadrant (which can be much larger than the card when the
+  /// card is aligned to one side of the quadrant).
+  final GlobalKey _introduceKey = GlobalKey();
+  Rect? introduceCardRect;
+
   late Alignment alignment;
   QuadrantAlignment? _quadrantAlignment;
   late final AnimationController _scaleController;
@@ -124,13 +132,19 @@ class _FeaturesChildState extends State<FeaturesChild>
     }
 
     final tempRect = widget.globalKey.globalPaintBounds;
-    if (tempRect != null) {
-      if (tempRect == rect) {
-        return false;
-      }
+    final tempCardRect = _introduceKey.globalPaintBounds;
 
-      rect = tempRect;
+    final rectChanged = tempRect != null && tempRect != rect;
+    final cardChanged = tempCardRect != null && tempCardRect != introduceCardRect;
+
+    // Keep ticking until both the child and the introduce card have settled,
+    // otherwise the connector would be painted against a stale card position.
+    if (!rectChanged && !cardChanged) {
+      return false;
     }
+
+    if (tempRect != null) rect = tempRect;
+    if (tempCardRect != null) introduceCardRect = tempCardRect;
 
     if (rect == null) return false;
 
@@ -206,7 +220,7 @@ class _FeaturesChildState extends State<FeaturesChild>
             left,
             introduceRect.top,
             dialogWidth,
-            size.height,
+            introduceRect.height,
           );
         }
       case QuadrantAlignment.inside:
@@ -373,6 +387,7 @@ class _FeaturesChildState extends State<FeaturesChild>
                         cornerRadius: config.cornerRadius,
                         arrowSize: config.arrowSize,
                         minDistance: config.minDistance,
+                        introduceCardRect: introduceCardRect,
                       ),
                     ),
                   ),
@@ -426,10 +441,13 @@ class _FeaturesChildState extends State<FeaturesChild>
                 padding: widget.padding,
                 child: Align(
                   alignment: alignment,
-                  child: widget.introduceConfig.builder(
-                    context,
-                    rect!,
-                    widget.introduce(context, widget.featureIndex, widget.totalFeatures),
+                  child: KeyedSubtree(
+                    key: _introduceKey,
+                    child: widget.introduceConfig.builder(
+                      context,
+                      rect!,
+                      widget.introduce(context, widget.featureIndex, widget.totalFeatures),
+                    ),
                   ),
                 ),
               ),
@@ -463,10 +481,17 @@ class _ConnectorPainter extends CustomPainter {
     required this.cornerRadius,
     required this.arrowSize,
     required this.minDistance,
+    required this.introduceCardRect,
   });
 
   final Rect childRect;
   final Rect introduceRect;
+
+  /// The real painted bounds of the introduce card, when known. The connector
+  /// ends here so the line reaches the card itself rather than the outer
+  /// [introduceRect] quadrant (which is larger when the card is aligned to one
+  /// side). Falls back to [introduceRect] minus padding when unavailable.
+  final Rect? introduceCardRect;
 
   /// Resolved padding of the introduce widget inside [introduceRect].
   /// Used to find the actual card boundary for the end-point anchor.
@@ -483,8 +508,12 @@ class _ConnectorPainter extends CustomPainter {
   final double arrowSize;
   final double minDistance;
 
-  // The actual bounding rect of the intro card (introduceRect minus padding).
-  Rect get _introCardRect => Rect.fromLTRB(
+  // The actual bounding rect of the intro card. Prefers the measured card
+  // bounds; falls back to introduceRect minus padding before the card has been
+  // laid out and measured.
+  Rect get _introCardRect =>
+      introduceCardRect ??
+      Rect.fromLTRB(
         introduceRect.left + introPadding.left,
         introduceRect.top + introPadding.top,
         introduceRect.right - introPadding.right,
@@ -498,13 +527,13 @@ class _ConnectorPainter extends CustomPainter {
     // actual visual space between the child and the visible card edge.
     if (minDistance > 0) {
       final cardRect = _introCardRect;
-      final gap = childRect.center.dy < introduceRect.center.dy
+      final gap = childRect.center.dy < cardRect.center.dy
           ? cardRect.top - childRect.bottom
           : childRect.top - cardRect.bottom;
       if (gap < minDistance) return;
     }
 
-    final childAboveIntro = childRect.center.dy < introduceRect.center.dy;
+    final childAboveIntro = childRect.center.dy < _introCardRect.center.dy;
     final start = childAnchor.withinRect(childRect) + startOffset;
 
     final cardRect = _introCardRect;
@@ -517,12 +546,16 @@ class _ConnectorPainter extends CustomPainter {
       // User-specified anchor: snap to the card edge on the dominant axis so
       // the line arrives at the boundary, not inside.
       final anchorPt = introAnchor!.withinRect(cardRect);
+      // The arrowhead must follow the direction the line is actually traveling
+      // when it reaches the card, which depends on whether the child sits above
+      // or below the card — not on which edge was chosen.
+      final vAngle = childAboveIntro ? math.pi / 2 : -math.pi / 2;
       if (introAnchor!.y <= -0.5) {
         end = Offset(anchorPt.dx, cardRect.top) + endOffset;
-        arrivalAngle = -math.pi / 2; // going UP
+        arrivalAngle = vAngle;
       } else if (introAnchor!.y >= 0.5) {
         end = Offset(anchorPt.dx, cardRect.bottom) + endOffset;
-        arrivalAngle = math.pi / 2;  // going DOWN
+        arrivalAngle = vAngle;
       } else if (introAnchor!.x <= -0.5) {
         end = Offset(cardRect.left, anchorPt.dy) + endOffset;
         arrivalAngle = math.pi;      // going LEFT
@@ -577,7 +610,7 @@ class _ConnectorPainter extends CustomPainter {
     // If start is already outside, skip this — no extra line needed.
     final Offset routeStart;
     if (childRect.contains(start)) {
-      if (childRect.center.dy < introduceRect.center.dy) {
+      if (childRect.center.dy < _introCardRect.center.dy) {
         // Z-shape: exit through the bottom edge.
         routeStart = Offset(start.dx, childRect.bottom);
       } else {
@@ -601,7 +634,7 @@ class _ConnectorPainter extends CustomPainter {
       return path;
     }
 
-    if (childRect.center.dy > introduceRect.center.dy) {
+    if (childRect.center.dy > _introCardRect.center.dy) {
       // ── L-shape ──────────────────────────────────────────────────────────
       final elbow = Offset(end.dx, routeStart.dy);
       final r = cornerRadius.clamp(0.0, math.min(hDist / 2, vDist / 2));
@@ -680,5 +713,6 @@ class _ConnectorPainter extends CustomPainter {
       old.endOffset != endOffset ||
       old.cornerRadius != cornerRadius ||
       old.arrowSize != arrowSize ||
-      old.minDistance != minDistance;
+      old.minDistance != minDistance ||
+      old.introduceCardRect != introduceCardRect;
 }

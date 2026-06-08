@@ -1,3 +1,9 @@
+## 1.0.1
+
+* Fixed the connector ending at the outer quadrant instead of the actual introduce card: the card's real painted bounds are now measured and used as the connector's end anchor, so the line reaches the card even when it is aligned to one side of the quadrant.
+* Fixed the `QuadrantAlignment.bottom` introduce rect height overflowing the screen.
+* Fixed the connector arrowhead direction to follow the actual arrival direction for a user-specified `introAnchor`.
+
 ## 0.6.2
 
 * Fixed the overlay level mismatch that blocked FeaturesTour button interactions.
