@@ -7,6 +7,7 @@ class ChildConfig {
     Widget Function(BuildContext context, Widget child)? builder,
     bool? isAnimateChild,
     double? borderSizeInflate,
+    EdgeInsets? borderInsetsInflate,
     Color? backgroundColor,
     bool? barrierDismissible,
     ShapeBorder? shapeBorder,
@@ -19,6 +20,7 @@ class ChildConfig {
       builder: builder,
       isAnimateChild: isAnimateChild,
       borderSizeInflate: borderSizeInflate,
+      borderInsetsInflate: borderInsetsInflate,
       backgroundColor: backgroundColor,
       barrierDismissible: barrierDismissible,
       shapeBorder: shapeBorder,
@@ -34,6 +36,7 @@ class ChildConfig {
     this.builder,
     this.isAnimateChild = true,
     this.borderSizeInflate = 3,
+    this.borderInsetsInflate,
     this.backgroundColor,
     this.barrierDismissible = false,
     this.shapeBorder = const RoundedRectangleBorder(
@@ -57,7 +60,17 @@ class ChildConfig {
 
   /// Specifies how much larger the border rectangle is compared to the child
   /// widget. This value controls the border's size relative to the child.
+  ///
+  /// Applies the same inflation to all four sides. For per-side control use
+  /// [borderInsetsInflate], which takes precedence when set.
   final double borderSizeInflate;
+
+  /// Per-side inflation of the border rectangle relative to the child, allowing
+  /// an asymmetric highlight (e.g. extra room only at the bottom). When non-null
+  /// it overrides [borderSizeInflate]. Note: this only grows the highlight border
+  /// box — it does not move the child widget nor the connector anchor, which stay
+  /// pinned to the child's measured bounds.
+  final EdgeInsets? borderInsetsInflate;
 
   /// Sets the background color of the `child` widget. This is particularly useful
   /// for widgets like [TextField], [Text], and [TextButton], which don't have
@@ -95,6 +108,7 @@ class ChildConfig {
     Widget Function(BuildContext context, Widget child)? builder,
     bool? isAnimateChild,
     double? borderSizeInflate,
+    EdgeInsets? borderInsetsInflate,
     Color? backgroundColor,
     bool? barrierDismissible,
     ShapeBorder? shapeBorder,
@@ -107,6 +121,7 @@ class ChildConfig {
       builder: builder ?? this.builder,
       isAnimateChild: isAnimateChild ?? this.isAnimateChild,
       borderSizeInflate: borderSizeInflate ?? this.borderSizeInflate,
+      borderInsetsInflate: borderInsetsInflate ?? this.borderInsetsInflate,
       backgroundColor: backgroundColor ?? this.backgroundColor,
       barrierDismissible: barrierDismissible ?? this.barrierDismissible,
       shapeBorder: shapeBorder ?? this.shapeBorder,

@@ -315,6 +315,21 @@ class _FeaturesChildState extends State<FeaturesChild>
     super.didChangeMetrics();
   }
 
+  /// The highlight border rect, inflated around the child. [ChildConfig.borderInsetsInflate]
+  /// (per-side) takes precedence over the symmetric [ChildConfig.borderSizeInflate].
+  Rect _borderRect(Rect childRect) {
+    final insets = widget.childConfig.borderInsetsInflate;
+    if (insets != null) {
+      return Rect.fromLTRB(
+        childRect.left - insets.left,
+        childRect.top - insets.top,
+        childRect.right + insets.right,
+        childRect.bottom + insets.bottom,
+      );
+    }
+    return childRect.inflate(widget.childConfig.borderSizeInflate);
+  }
+
   @override
   Widget build(BuildContext context) {
     return rect == null
@@ -323,7 +338,7 @@ class _FeaturesChildState extends State<FeaturesChild>
           children: [
             // Border widget
             Positioned.fromRect(
-              rect: rect!.inflate(widget.childConfig.borderSizeInflate),
+              rect: _borderRect(rect!),
               child: AnimatedBuilder(
                 animation: _scaleAnimation,
                 builder: (context, child) {
