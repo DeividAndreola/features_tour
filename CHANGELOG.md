@@ -1,3 +1,7 @@
+## 1.0.2
+
+* Added `ChildConfig.borderInsetsInflate` (`EdgeInsets`) to inflate the highlight border rect per-side, allowing an asymmetric highlight. It overrides the symmetric `borderSizeInflate` when set. Only the border box grows — the child widget and connector anchor stay pinned to the child's measured bounds.
+
 ## 1.0.1
 
 * Fixed the connector ending at the outer quadrant instead of the actual introduce card: the card's real painted bounds are now measured and used as the connector's end anchor, so the line reaches the card even when it is aligned to one side of the quadrant.
