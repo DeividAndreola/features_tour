@@ -1,3 +1,8 @@
+## 1.1.0
+
+* A tour whose page is covered by another route (the user opened another page while the tour was waiting to start) now stops instead of showing its cover and introduction over that page. Nothing is marked as shown, so the tour runs again on the next `start`.
+* Added the `TourNotCurrent` state, emitted in that case. `TourState` is sealed, so exhaustive `switch`es over it need the new case.
+
 ## 1.0.2
 
 * Added `ChildConfig.borderInsetsInflate` (`EdgeInsets`) to inflate the highlight border rect per-side, allowing an asymmetric highlight. It overrides the symmetric `borderSizeInflate` when set. Only the border box grows — the child widget and connector anchor stay pinned to the child's measured bounds.

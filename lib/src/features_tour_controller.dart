@@ -379,6 +379,15 @@ class FeaturesTourController {
           break;
         }
 
+        // The cover and the introduction draw on an overlay above every route: if another
+        // route was pushed over this page while the tour was waiting, stop here without
+        // marking anything as shown, so the tour runs again on the next `start`.
+        if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
+          _logger?.warning(() => '   -> The page is covered by another route');
+          await onState?.call(const TourNotCurrent());
+          break;
+        }
+
         // Closes the previous cover if it exists.
         hideCover(
           _debugLog ? (log) => _logger?.debug(() => '   -> $log') : null,

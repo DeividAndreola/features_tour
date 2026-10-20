@@ -18,6 +18,13 @@ class TourNotMounted extends TourState {
   const TourNotMounted();
 }
 
+/// Indicates that the tour stopped because another route was pushed over its page. Nothing is
+/// marked as shown, so the tour runs again on the next `start`.
+class TourNotCurrent extends TourState {
+  /// Creates a new instance of [TourNotCurrent].
+  const TourNotCurrent();
+}
+
 /// Indicates that there are no feature tour states to be shown.
 class TourEmpty extends TourState {
   /// Creates a new instance of [TourEmpty].
