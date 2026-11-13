@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:features_tour/features_tour.dart';
 import 'package:features_tour/src/extensions/get_widget_position.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 /// An internal widget that displays all the necessary widgets in a Stack.
 class FeaturesChild extends StatefulWidget {
@@ -103,6 +104,7 @@ class _FeaturesChildState extends State<FeaturesChild>
 
   late Alignment alignment;
   QuadrantAlignment? _quadrantAlignment;
+  bool _flipped = false;
   late final AnimationController _scaleController;
   late final Animation<double> _scaleAnimation;
 
@@ -118,11 +120,20 @@ class _FeaturesChildState extends State<FeaturesChild>
       times++;
 
       // Keeps listening for every frame while mounted.
-      WidgetsBinding.instance.addPostFrameCallback(frameCallback);
+      _nextFrame(frameCallback);
     }
 
     // Starts listening.
-    WidgetsBinding.instance.addPostFrameCallback(frameCallback);
+    _nextFrame(frameCallback);
+  }
+
+  /// A post-frame callback does not ask for a frame: on a still screen (no
+  /// highlight animation) the card would never be measured, so it would never
+  /// move to the side it fits on.
+  void _nextFrame(FrameCallback callback) {
+    WidgetsBinding.instance
+      ..addPostFrameCallback(callback)
+      ..ensureVisualUpdate();
   }
 
   /// Updates the current state.
@@ -154,11 +165,20 @@ class _FeaturesChildState extends State<FeaturesChild>
         MediaQuery.maybeOf(context)?.size ??
         MediaQueryData.fromView(View.of(context)).size;
 
+    _flipWhenCardDoesNotFit(size);
+
+    final safe = _safeArea;
+
     switch (_quadrantAlignment!) {
       case QuadrantAlignment.top:
-        introduceRect = Rect.fromLTRB(0, 0, size.width, rect!.top);
+        introduceRect = Rect.fromLTRB(
+          0,
+          safe.top,
+          size.width,
+          math.max(safe.top, rect!.top),
+        );
         if (widget.alignment != null) {
-          alignment = widget.alignment!;
+          alignment = _requestedAlignment!;
         } else {
           final dialogWidth = size.width.clamp(280, 400).toDouble();
           var left = rect!.topCenter.dx - dialogWidth / 2;
@@ -173,7 +193,7 @@ class _FeaturesChildState extends State<FeaturesChild>
           }
           introduceRect = Rect.fromLTWH(
             left,
-            0,
+            introduceRect.top,
             dialogWidth,
             introduceRect.height,
           );
@@ -201,9 +221,14 @@ class _FeaturesChildState extends State<FeaturesChild>
           };
         }
       case QuadrantAlignment.bottom:
-        introduceRect = Rect.fromLTRB(0, rect!.bottom, size.width, size.height);
+        introduceRect = Rect.fromLTRB(
+          0,
+          rect!.bottom,
+          size.width,
+          math.max(rect!.bottom, size.height - safe.bottom),
+        );
         if (widget.alignment != null) {
-          alignment = widget.alignment!;
+          alignment = _requestedAlignment!;
         } else {
           final dialogWidth = size.width.clamp(280, 400).toDouble();
           var left = rect!.topCenter.dx - dialogWidth / 2;
@@ -230,6 +255,84 @@ class _FeaturesChildState extends State<FeaturesChild>
 
     setState(() {});
     return true;
+  }
+
+  /// The `alignment` the caller asked for, mirrored vertically once the card
+  /// moved to the opposite side, so it still hugs the child.
+  Alignment? get _requestedAlignment {
+    final requested = widget.alignment;
+    if (requested == null || !_flipped) return requested;
+
+    return Alignment(requested.x, -requested.y);
+  }
+
+  /// The status and navigation bars: a card above or below the child stays
+  /// clear of them, or its title or buttons end up hidden under them.
+  ///
+  /// Read from the view, not the nearest `MediaQuery`: a tour on a nested
+  /// navigator's overlay sits under a `Scaffold` body, which strips the top
+  /// padding even though the card is drawn in screen coordinates.
+  EdgeInsets get _safeArea =>
+      MediaQueryData.fromView(View.of(context)).viewPadding;
+
+  /// The room for the card above and below the child, inside the padding and
+  /// the safe area.
+  ({double above, double below}) _room(Size size) {
+    final padding = widget.padding.resolve(
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
+    final safe = _safeArea;
+
+    return (
+      above: math.max(0, rect!.top - safe.top - padding.vertical),
+      below: math.max(
+        0,
+        size.height - safe.bottom - rect!.bottom - padding.vertical,
+      ),
+    );
+  }
+
+  /// How tall a card above or below the child may be laid out: the taller side,
+  /// so a card that does not fit its side shows its real height and can move.
+  /// Other sides keep the quadrant's height.
+  double? get _cardMaxHeight {
+    if (_quadrantAlignment != QuadrantAlignment.top &&
+        _quadrantAlignment != QuadrantAlignment.bottom) {
+      return null;
+    }
+
+    final (:above, :below) = _room(MediaQuery.sizeOf(context));
+
+    return math.max(above, below);
+  }
+
+  /// Moves the card to the opposite side when it does not fit on the requested
+  /// one and the opposite side is taller. Otherwise a card under a child low on a
+  /// short screen runs past the bottom edge and its buttons cannot be reached.
+  ///
+  /// It moves at most once, so it cannot bounce.
+  void _flipWhenCardDoesNotFit(Size size) {
+    final card = introduceCardRect;
+    if (_flipped || card == null) return;
+
+    final opposite = switch (_quadrantAlignment) {
+      QuadrantAlignment.top => QuadrantAlignment.bottom,
+      QuadrantAlignment.bottom => QuadrantAlignment.top,
+      _ => null,
+    };
+    if (opposite == null) return;
+
+    final (:above, :below) = _room(size);
+    final (room, oppositeRoom) = _quadrantAlignment == QuadrantAlignment.top
+        ? (above, below)
+        : (below, above);
+
+    // Half a pixel absorbs layout rounding.
+    final fits = card.height <= room + 0.5;
+    if (fits || oppositeRoom <= room) return;
+
+    _flipped = true;
+    _quadrantAlignment = opposite;
   }
 
   /// Finds the larger height between the top and bottom rectangles to set the
@@ -454,14 +557,23 @@ class _FeaturesChildState extends State<FeaturesChild>
               rect: introduceRect,
               child: Padding(
                 padding: widget.padding,
-                child: Align(
+                // Lets the card grow past its side, up to the taller one, so it is
+                // measured at its real height instead of overflowing for a frame
+                // before it moves.
+                child: OverflowBox(
                   alignment: alignment,
+                  minWidth: 0,
+                  minHeight: 0,
+                  maxHeight: _cardMaxHeight,
                   child: KeyedSubtree(
                     key: _introduceKey,
-                    child: widget.introduceConfig.builder(
-                      context,
-                      rect!,
-                      widget.introduce(context, widget.featureIndex, widget.totalFeatures),
+                    child: FeaturesTourPlacement(
+                      quadrantAlignment: _quadrantAlignment!,
+                      child: widget.introduceConfig.builder(
+                        context,
+                        rect!,
+                        widget.introduce(context, widget.featureIndex, widget.totalFeatures),
+                      ),
                     ),
                   ),
                 ),

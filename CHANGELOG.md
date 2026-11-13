@@ -1,3 +1,11 @@
+## 1.2.0
+
+* A card asked to open above or below the child (`IntroduceConfig.quadrantAlignment` top/bottom) now moves to the opposite side when it does not fit and that side is taller, instead of running past the screen edge with its buttons out of reach. A vertical `alignment` is mirrored with it. The card moves at most once per step.
+* While on its side the card may grow up to the taller side's height, so it is measured at its real height instead of overflowing for a frame before it moves.
+* A card above or below the child now stays inside the safe area (`MediaQuery.viewPadding`) instead of sliding under the status or navigation bar, and the room under those bars no longer counts when checking whether it fits.
+* Added `FeaturesTourPlacement.maybeOf(context)`: the side the `introduce` widget ended up on, to point an arrow at the child.
+* Fixed the card never being measured on a still screen (`ChildConfig.enableAnimation: false`): the measuring loop now asks for its next frame instead of waiting for something else to draw one.
+
 ## 1.1.0
 
 * A tour whose page is covered by another route (the user opened another page while the tour was waiting to start) now stops instead of showing its cover and introduction over that page. Nothing is marked as shown, so the tour runs again on the next `start`.
